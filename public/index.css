@@ -1,0 +1,10 @@
+.message {
+  padding: 10px 5px;
+  max-width: 350px;
+  border-radius: 10px;
+  margin-bottom: 5px;
+}
+
+#form {
+  margin-bottom: 10px;
+}
