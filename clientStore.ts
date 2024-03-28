@@ -4,16 +4,29 @@ import fs from 'fs';
 const filename = "clients.json";
 
 export const createClientStore = () => {
-  fs.writeFileSync(filename, '[]');
+  if (!fs.existsSync(filename)) {
+    try {
+      fs.writeFileSync(filename, '[]');
+    } catch (err) {
+      console.log(err);
+    }
+  }
 }
 
-export const addClient = (client: Client): Client => {
+export const addClient = (client: Client): Array<Client> => {
   try {
     const clients = fs.readFileSync(filename, 'utf8');
-    const clients_obj = JSON.parse(clients);
-    clients_obj.push(client);
-    return JSON.parse(clients_obj);
+    const clients_arr = JSON.parse(clients);
+    const existing_clinet = clients_arr.findIndex((el: Client) => el.username === client.username);
+    if (existing_clinet != -1) {
+      clients_arr[existing_clinet] = client;
+    } else {
+      clients_arr.push(client);
+    }
+    fs.writeFileSync(filename, JSON.stringify(clients_arr));
+    return clients_arr;
   } catch (err) {
+    console.log(err);
     throw new Error(`Unable to write client to a file: ${err}`);
   }
 }

@@ -4,15 +4,10 @@ const button = document.getElementById('send-button');
 
 const socket = new WebSocket('ws://192.168.1.130:9090/');
 
-const clientData = {
-  name: "client1",
-  ip: "1.1.1.1"
-}
-
-registerClient();
-
 // wait until the connection is established
-socket.onopen = () => {}
+socket.onopen = () => {
+  registerClient();
+}
 
 from.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -27,12 +22,11 @@ from.addEventListener('submit', (e) => {
 });
 
 async function registerClient() {
-  try {
-    const response = await axios.post('http://192.168.1.130:3000/register', clientData);
-    console.log(response.data);
-  } catch (err) {
-    console.log(err);
-  }
+  socket.send(JSON.stringify({topic: "register", data: {username: "burek"}}));
+}
+
+function generateKeyPair() {
+  
 }
 
 function displayMessage(message, author) {
