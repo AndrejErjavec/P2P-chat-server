@@ -33,6 +33,5 @@ COPY --from=development /usr/src/app/build ./build
 COPY --from=development /usr/src/app/public ./public
 
 EXPOSE 3000
-EXPOSE 9090
 
 CMD ["node", "build/server.js"]
