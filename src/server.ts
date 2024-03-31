@@ -19,11 +19,12 @@ app.use(express.static('public'));
 createClientStore();
 
 io.on("connection", (socket, req) => {
-  console.log("client connected");
-  const clientAddress = req.socket.remoteAddress;
-  const clientPort = req.socket.remotePort;
+  const privateAddress = req.socket.remoteAddress;
+  const privatePort = req.socket.remotePort;
+  // if connected from local network, the header will be undefined
+  const publicAddress = req.headers['x-forwarded-for']?.toString()?.split(',')[0]?.trim();
 
-  console.log(`client connected: ${clientAddress}:${clientPort}`);
+  console.log(`client connected: ${publicAddress} | ${privateAddress}:${privatePort}`);
 
   socket.on('message', (data: string) => {
     const obj = JSON.parse(data);
@@ -36,8 +37,9 @@ io.on("connection", (socket, req) => {
       case MessageTopic.REGISTER:
         const client = {
           username: obj.data.username,
-          privateAddress: req.socket.remoteAddress,
-          privatePort: req.socket.remotePort
+          privateAddress: privateAddress,
+          privatePort: privatePort,
+          publicAddress: publicAddress
         }
         try {
           addClient(client);

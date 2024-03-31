@@ -33,7 +33,7 @@ messageForm.addEventListener('submit', (e) => {
 });
 
 async function registerClient() {
-  socket.send(JSON.stringify({topic: "register", data: {username: "burek"}}));
+  socket.send(JSON.stringify({topic: "register", data: {username: "jufka"}}));
 }
 
 function generateKeyPair() {
