@@ -2,7 +2,7 @@ const from = document.getElementById('form');
 const input = document.getElementById('input');
 const button = document.getElementById('send-button');
 
-const socket = new WebSocket('ws://192.168.1.130:9090/');
+const socket = new WebSocket('ws://192.168.1.100:9090/');
 
 // wait until the connection is established
 socket.onopen = () => {

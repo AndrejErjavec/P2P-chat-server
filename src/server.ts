@@ -1,14 +1,12 @@
-import express, { Express, Request, Response , Application } from 'express';
-import cors  from 'cors';
+import express, { Request, Response , Application } from 'express';
 import { createServer } from 'http';
-import { Server } from "socket.io";
-import WebSocket, { WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
+import cors from 'cors';
 import { addClient, createClientStore, getClients } from './clientStore';
 import { MessageTopic } from './types/messageTopic';
 
 const app: Application = express();
 const server = createServer(app);
-//const io = new Server(server, { /* options */ });
 const io = new WebSocketServer({ port: 9090 });
 
 app.use(express.json());
@@ -21,15 +19,11 @@ app.use(express.static('public'));
 createClientStore();
 
 io.on("connection", (socket, req) => {
-  socket.emit("serverChatMessage", 'Welcome to socket chat app');
+  console.log("client connected");
   const clientAddress = req.socket.remoteAddress;
   const clientPort = req.socket.remotePort;
 
   console.log(`client connected: ${clientAddress}:${clientPort}`);
-
-  socket.on('register', (message) => {
-    console.log(req.socket.remoteAddress);
-  });
 
   socket.on('message', (data: string) => {
     const obj = JSON.parse(data);
@@ -55,7 +49,7 @@ io.on("connection", (socket, req) => {
   })
 });
 
-app.get('/clients', (req, res) => {
+app.get('/clients', (req: Request, res: Response) => {
   try {
     const clients = getClients();
     res.status(200).json({clients});

@@ -1,7 +1,7 @@
+import * as fs from 'fs';
 import { Client } from "./types/client";
-import fs from 'fs';
 
-const filename = "clients.json";
+const filename = "data/clients.json";
 
 export const createClientStore = () => {
   if (!fs.existsSync(filename)) {

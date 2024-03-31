@@ -1,0 +1,13 @@
+services:
+  server:
+    build: 
+      context: .
+      # run up to production stage
+      target: production
+    environment:
+      NODE_ENV: production
+    ports:
+      - 3000:3000 # web server port
+      - 9090:9090 # UDP socket port
+    volumes:
+      - ./data:/usr/src/app/data
