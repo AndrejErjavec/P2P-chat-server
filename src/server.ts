@@ -7,7 +7,7 @@ import { MessageTopic } from './types/messageTopic';
 
 const app: Application = express();
 const server = createServer(app);
-const io = new WebSocketServer({ port: 9090 });
+const io = new WebSocketServer({ server });
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

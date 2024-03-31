@@ -1,23 +1,34 @@
-const from = document.getElementById('form');
-const input = document.getElementById('input');
-const button = document.getElementById('send-button');
+const serverForm = document.getElementById('server-form');
+const serverInput = document.getElementById('server-input');
+const messageForm = document.getElementById('message-form');
+const messageInput = document.getElementById('message-input');
+const messageBox = document.querySelector('#message');
 
-const socket = new WebSocket('ws://192.168.1.100:9090/');
+let socket = null;
 
-// wait until the connection is established
-socket.onopen = () => {
-  registerClient();
-}
-
-from.addEventListener('submit', (e) => {
+serverForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  if (input.value) {
-    socket.emit('chatMessage', input.value);
+  if (serverInput.value) {
+    socket = new WebSocket(`ws://${serverInput.value}`);
+    // wait until the connection is established
+    socket.onopen = () => {
+      registerClient();
+      displayMessage('connected');
+    }
+  } else {
+    displayMessage('no server address');
+  }
+});
+
+messageForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (messageInput.value) {
+    socket.emit('chatMessage', messageInput.value);
     input.value = '';
-    displayMessage(input.value, "me");
+    displayChatMessage(input.value, "me");
   }
   else {
-    console.log('no text');
+    displayMessage('no text');
   }
 });
 
@@ -29,7 +40,11 @@ function generateKeyPair() {
   
 }
 
-function displayMessage(message, author) {
+function displayMessage(message) {
+  messageBox.innerHTML = message;
+}
+
+function displayChatMessage(message, author) {
   const newMessage = document.createElement('div');
   newMessage.innerHTML = message;
   newMessage.classList.add("message");
