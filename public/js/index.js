@@ -1,20 +1,28 @@
-const serverForm = document.getElementById('server-form');
-const serverInput = document.getElementById('server-input');
-const messageForm = document.getElementById('message-form');
-const messageInput = document.getElementById('message-input');
+const serverForm = document.querySelector('#server-form');
+const serverInput = document.querySelector('#server-input');
+const messageForm = document.querySelector('#message-form');
+const messageInput = document.querySelector('#message-input');
 const messageBox = document.querySelector('#message');
+const username = document.querySelector('#username');
+const onlineUsers = document.querySelector('#online-users');
 
 let socket = null;
 
 serverForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  if (serverInput.value) {
-    socket = new WebSocket(`ws://${serverInput.value}`);
+  if (serverInput.value && username.value) {
+    socket = new WebSocket(`wss://${serverInput.value}`);
     // wait until the connection is established
     socket.onopen = () => {
-      registerClient();
+      registerClient(username.value);
       displayMessage('connected');
-    }
+    };
+
+    socket.onmessage = (message) => {
+      console.log("got message");
+      const users = JSON.parse(message.data).data;
+      displayOnlineUsers(users);
+    };
   } else {
     displayMessage('no server address');
   }
@@ -32,8 +40,8 @@ messageForm.addEventListener('submit', (e) => {
   }
 });
 
-async function registerClient() {
-  socket.send(JSON.stringify({topic: "register", data: {username: "jufka"}}));
+async function registerClient(username) {
+  socket.send(JSON.stringify({topic: "register", data: {username: username}}));
 }
 
 function generateKeyPair() {
@@ -42,6 +50,25 @@ function generateKeyPair() {
 
 function displayMessage(message) {
   messageBox.innerHTML = message;
+}
+
+function displayOnlineUsers(users) {
+  console.log(users);
+  onlineUsers.innerHTML = '';
+  users.forEach(user => {
+    const userDiv = document.createElement('div');
+    const username = document.createElement('div');
+    const status = document.createElement('div');
+    if (user.socketId) {
+      status.classList.add('online-indicator');
+    } else {
+      status.classList.add('offline-indicator');
+    }
+    userDiv.appendChild(username);
+    userDiv.appendChild(status);
+    username.innerHTML = user.username;
+    onlineUsers.appendChild(userDiv);
+  });
 }
 
 function displayChatMessage(message, author) {

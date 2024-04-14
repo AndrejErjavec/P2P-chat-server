@@ -1,9 +1,15 @@
 import express, { Request, Response , Application } from 'express';
-import { createServer } from 'http';
-import { WebSocket, WebSocketServer } from 'ws';
 import cors from 'cors';
+import { IncomingMessage, createServer } from 'http';
+import { WebSocket, WebSocketServer } from 'ws';
+import { v4 as uuidv4 } from 'uuid';
 import { addClient, createClientStore, getClients } from './clientStore';
 import { MessageTopic } from './types/messageTopic';
+import { Client } from './types/client';
+import dotenv from 'dotenv'; 
+dotenv.config();
+
+const port = process.env.PORT || 5000;
 
 const app: Application = express();
 const server = createServer(app);
@@ -11,20 +17,19 @@ const io = new WebSocketServer({ server });
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors({origin: true}));
+app.use(cors());
 
 // serve static site
 app.use(express.static('public'));
 
 createClientStore();
 
-io.on("connection", (socket, req) => {
-  const privateAddress = req.socket.remoteAddress;
-  const privatePort = req.socket.remotePort;
-  // if connected from local network, the header will be undefined
-  const publicAddress = req.headers['x-forwarded-for']?.toString()?.split(',')[0]?.trim();
+io.on("connection", (socket: any, req: any) => {
+  socket.id = uuidv4();
+  const publicAddress = req.headers['x-forwarded-for']?.toString()?.split(',')[1]?.trim();
+  const publicPort = req.socket.remotePort;
 
-  console.log(`client connected: ${publicAddress} | ${privateAddress}:${privatePort}`);
+  console.log(`client connected: ${publicAddress}:${publicPort}`);
 
   socket.on('message', (data: string) => {
     const obj = JSON.parse(data);
@@ -32,37 +37,54 @@ io.on("connection", (socket, req) => {
       console.log("topic missing");
       return;
     }
-    console.log(obj.topic);
+
     switch (obj.topic) {
       case MessageTopic.REGISTER:
-        const client = {
+        const client: Client = {
           username: obj.data.username,
-          privateAddress: privateAddress,
-          privatePort: privatePort,
-          publicAddress: publicAddress
+          publicAddress: publicAddress,
+          publicPort: publicPort,
+          socketId: socket.id
         }
         try {
-          addClient(client);
+          const clients = addClient(client);
+          updateOnline(io, clients);
         } catch (err: any) {
           console.log(err.message);
         }
         break;
     }
-  })
+  });
+
+  socket.on('close', () => {
+    console.log("client disconnected");
+    try {
+      let clients = getClients();
+      let client = clients.find(client => client.socketId === socket.id);
+      clients = addClient({...client, socketId: null});
+      updateOnline(io, clients);
+    } catch (err: any) {
+      console.log(err.message);
+    }
+  });
+
+  // send clients status to peer when connection is made
+  const clients = getClients();
+  io.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({topic: MessageTopic.UPDATE_ONLINE, data: clients}));
+    }
+  });
 });
 
-app.get('/clients', (req: Request, res: Response) => {
-  try {
-    const clients = getClients();
-    res.status(200).json({clients});
-  } catch (err: any) {
-    res.status(500).json({
-      error: err.message,
-      message: "Cannot get clients"
-    });
-  }
-});
+const updateOnline = (io: WebSocketServer, clients: Client[]) => {
+  io.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({topic: MessageTopic.UPDATE_ONLINE, data: clients}));
+    }
+  });
+}
 
-server.listen(3000, () => {
-  console.log(`Server listening on 3000`);
+server.listen(port, () => {
+  console.log(`Server listening on ${port}`);
 });

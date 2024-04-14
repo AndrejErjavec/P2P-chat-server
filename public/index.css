@@ -8,3 +8,17 @@
 #form {
   margin-bottom: 10px;
 }
+
+.online-indicator {
+  width: 20px;
+  height: 20px;
+  background-color: rgb(128, 236, 19);
+  border-radius: 50%;
+}
+
+.offline-indicator {
+  width: 20px;
+  height: 20px;
+  background-color: rgb(158, 158, 158);
+  border-radius: 50%;
+}

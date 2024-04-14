@@ -1,7 +1,9 @@
 import * as fs from 'fs';
 import { Client } from "./types/client";
+import dotenv from 'dotenv'; 
+dotenv.config();
 
-const filename = "data/clients.json";
+const filename = 'data/clients.json';
 
 export const createClientStore = () => {
   if (!fs.existsSync(filename)) {
@@ -30,6 +32,7 @@ export const addClient = (client: Client): Array<Client> => {
     throw new Error(`Unable to write client to a file: ${err}`);
   }
 }
+
 
 export const getClients = (): Array<Client> => {
   try {

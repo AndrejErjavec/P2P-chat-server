@@ -10,13 +10,19 @@
   <h1>Websocket chat app</h1>
   <div id="message"></div>
   <form id="server-form">
-    <input type="text" id="server-input">
+    <input type="text" id="username" placeholder="username">
+    <input type="text" id="server-input" placeholder="server address">
     <button id="connect-button" type="submit">connect</button>
   </form>
   <form id="message-form">
-    <input type="text" id="message-input">
+    <input type="text" id="message-input" placeholder="message">
     <button id="send-button" type="submit">send</button>
   </form>
+
+  <section>
+    <div>Online users</div>
+    <div id="online-users"></div>
+  </section>
 
   <section id="messages"></section>
 
