@@ -9,7 +9,9 @@ import { Client } from './types/client';
 import dotenv from 'dotenv'; 
 dotenv.config();
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5757;
+
+console.log(process.env);
 
 const app: Application = express();
 const server = createServer(app);

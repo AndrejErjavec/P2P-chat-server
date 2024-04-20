@@ -7,6 +7,6 @@ services:
     environment:
       NODE_ENV: production
     ports:
-      - 4000:3000 # web server port
+      - 5757:5757 # web server port
     volumes:
       - ./data:/usr/src/app/data
