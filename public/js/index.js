@@ -11,7 +11,7 @@ let socket = null;
 serverForm.addEventListener('submit', (e) => {
   e.preventDefault();
   if (serverInput.value && username.value) {
-    socket = new WebSocket(`wss://${serverInput.value}`);
+    socket = new WebSocket(`ws://${serverInput.value}`);
     // wait until the connection is established
     socket.onopen = () => {
       registerClient(username.value);

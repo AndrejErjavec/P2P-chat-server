@@ -9,7 +9,7 @@ import { Client } from './types/client';
 import dotenv from 'dotenv'; 
 dotenv.config();
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5757;
 
 const app: Application = express();
 const server = createServer(app);
@@ -30,6 +30,8 @@ io.on("connection", (socket: any, req: any) => {
   const publicPort = req.socket.remotePort;
 
   console.log(`client connected: ${publicAddress}:${publicPort}`);
+
+  socket.send("hello from server");
 
   socket.on('message', (data: string) => {
     const obj = JSON.parse(data);
