@@ -6,7 +6,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { addClient, createClientStore, getClients } from './clientStore';
 import { MessageTopic } from './types/messageTopic';
 import { Client } from './types/client';
-import dotenv from 'dotenv'; 
+import dotenv from 'dotenv';
+import { SocketMessage } from 'types/socketMessage';
 dotenv.config();
 
 const port = process.env.PORT || 5757;
@@ -24,16 +25,24 @@ app.use(express.static('public'));
 
 createClientStore();
 
-io.on("connection", (socket: any, req: any) => {
+io.on("connection", (socket: any, req: IncomingMessage) => {
   socket.id = uuidv4();
   const publicAddress = req.headers['x-forwarded-for']?.toString()?.split(',')[1]?.trim();
   const publicPort = req.socket.remotePort;
 
   console.log(`client connected: ${publicAddress}:${publicPort}`);
 
-  socket.send("hello from server");
+  const message: SocketMessage = {
+    topic: "welcome",
+    code: "success",
+    data: {message: "welcome to server"}
+  }
+
+  socket.send(JSON.stringify(message))
 
   socket.on('message', (data: string) => {
+    console.log(data.toString());
+
     const obj = JSON.parse(data);
     if (!obj.topic) {
       console.log("topic missing");
@@ -44,17 +53,42 @@ io.on("connection", (socket: any, req: any) => {
       case MessageTopic.REGISTER:
         const client: Client = {
           username: obj.data.username,
-          publicAddress: publicAddress,
+          publicAddress: publicAddress || null,
           publicPort: publicPort,
+          privateAddress: req.socket.remoteAddress,
+          privatePort: obj.data.privatePort,
           socketId: socket.id
         }
         try {
           const clients = addClient(client);
-          updateOnline(io, clients);
+          const message: SocketMessage = {
+            topic: "register-response",
+            code: "success",
+            data: {message: "register successful"}
+          }
+          socket.send(JSON.stringify(message))
+          updateOnline(io, socket, clients);
         } catch (err: any) {
           console.log(err.message);
+          const message: SocketMessage = {
+            topic: "register-response",
+            code: "failure",
+            data: {message: "error when register"}
+          }
+          socket.send(JSON.stringify(message));
         }
-        break;
+
+      case MessageTopic.GET_ONLINE:
+        const clients = getClients();
+        updateOnline(io, socket, clients)
+        /*
+
+        const message: SocketMessage = {
+          topic: "online-users",
+          code: "success",
+          data: clients
+        }
+        socket.send(JSON.stringify(message))*/
     }
   });
 
@@ -64,28 +98,37 @@ io.on("connection", (socket: any, req: any) => {
       let clients = getClients();
       let client = clients.find(client => client.socketId === socket.id);
       clients = addClient({...client, socketId: null});
-      updateOnline(io, clients);
+      updateOnline(io, socket, clients);
     } catch (err: any) {
       console.log(err.message);
     }
   });
 
   // send clients status to peer when connection is made
-  const clients = getClients();
-  io.clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify({topic: MessageTopic.UPDATE_ONLINE, data: clients}));
-    }
-  });
 });
 
-const updateOnline = (io: WebSocketServer, clients: Client[]) => {
-  io.clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify({topic: MessageTopic.UPDATE_ONLINE, data: clients}));
+const updateOnline = (io: WebSocketServer, socket: any, clients: Client[]) => {
+  io.clients.forEach((ws: any) => {
+    if (ws.readyState === WebSocket.OPEN) {
+      const online = clients.filter(client => {
+        return client.socketId != ws.id && client.socketId != null
+      });
+      // console.log(`${ws.id} ==> ${online.map(client => (client.socketId))}`)
+      ws.send(JSON.stringify({topic: "update-online", code:"success", data: online}));
     }
   });
 }
+
+app.post('/register', (req, res) => {
+  const {username, privatePort} = req.body;
+  if (!username || !privatePort) {
+    res.status(400).json({
+      message: "missing data"
+    });
+    return;
+  }
+  
+});
 
 server.listen(port, () => {
   console.log(`Server listening on ${port}`);
