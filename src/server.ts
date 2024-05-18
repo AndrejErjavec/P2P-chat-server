@@ -55,7 +55,7 @@ io.on("connection", (socket: any, req: IncomingMessage) => {
           username: obj.data.username,
           publicAddress: publicAddress || null,
           publicPort: publicPort,
-          privateAddress: req.socket.remoteAddress,
+          privateAddress: req.socket.remoteAddress.split(':')[3],
           privatePort: obj.data.privatePort,
           socketId: socket.id
         }
@@ -81,14 +81,6 @@ io.on("connection", (socket: any, req: IncomingMessage) => {
       case MessageTopic.GET_ONLINE:
         const clients = getClients();
         updateOnline(io, socket, clients)
-        /*
-
-        const message: SocketMessage = {
-          topic: "online-users",
-          code: "success",
-          data: clients
-        }
-        socket.send(JSON.stringify(message))*/
     }
   });
 
