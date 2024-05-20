@@ -27,7 +27,9 @@ createClientStore();
 
 io.on("connection", (socket: any, req: IncomingMessage) => {
   socket.id = uuidv4();
-  const publicAddress = req.headers['x-forwarded-for']?.toString()?.split(',')[1]?.trim();
+  // const publicAddress = req.headers['x-forwarded-for']?.toString()?.split(',')[1]?.trim();
+
+  const publicAddress = req.socket.remoteAddress;
   const publicPort = req.socket.remotePort;
 
   console.log(`client connected: ${publicAddress}:${publicPort}`);
@@ -53,9 +55,9 @@ io.on("connection", (socket: any, req: IncomingMessage) => {
       case MessageTopic.REGISTER:
         const client: Client = {
           username: obj.data.username,
-          publicAddress: publicAddress || null,
+          publicAddress: publicAddress.split(':')[3] || null,
           publicPort: publicPort,
-          privateAddress: req.socket.remoteAddress.split(':')[3],
+          privateAddress: obj.data.privateAddress,
           privatePort: obj.data.privatePort,
           socketId: socket.id
         }
