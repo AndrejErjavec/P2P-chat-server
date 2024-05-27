@@ -9,4 +9,8 @@ services:
     ports:
       - 5757:5757 # web server port
     volumes:
+      #- p2p_chat_data:/usr/src/app/data
       - ./data:/usr/src/app/data
+
+#volumes:
+#  p2p_chat_data:

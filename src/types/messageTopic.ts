@@ -3,5 +3,10 @@ export const MessageTopic = {
   "CHAT_MESSAGE": "chat-message",
   "ERROR": "error",
   "GET_ONLINE": "get-online",
-  "UPDATE_ONLINE": "update-online"
+  "ALL_USERS": "all-users",
+  "USER_DATA": "user-data",
+  "ME": "me",
+  "UPDATE_ONLINE": "update-online",
+  "FORWARD_MESSAGE": "forward-message",
+  "CHAT_REQUEST": "chat-request"
 }

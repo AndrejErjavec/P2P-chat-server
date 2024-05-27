@@ -27,12 +27,10 @@ createClientStore();
 
 io.on("connection", (socket: any, req: IncomingMessage) => {
   socket.id = uuidv4();
-  // const publicAddress = req.headers['x-forwarded-for']?.toString()?.split(',')[1]?.trim();
 
-  const publicAddress = req.socket.remoteAddress;
-  const publicPort = req.socket.remotePort;
+  console.log('client connected');
 
-  console.log(`client connected: ${publicAddress}:${publicPort}`);
+  // console.log(`client connected: ${publicAddress}:${publicPort}`);
 
   const message: SocketMessage = {
     topic: "welcome",
@@ -52,22 +50,28 @@ io.on("connection", (socket: any, req: IncomingMessage) => {
     }
 
     switch (obj.topic) {
-      case MessageTopic.REGISTER:
+      case MessageTopic.REGISTER: {
         const client: Client = {
           username: obj.data.username,
-          publicAddress: publicAddress.split(':')[3] || null,
-          publicPort: publicPort,
+          publicAddress: req.headers['x-forwarded-for'].toString(),
+          publicPort: req.socket.remotePort,
           privateAddress: obj.data.privateAddress,
           privatePort: obj.data.privatePort,
           socketId: socket.id
         }
         try {
           const clients = addClient(client);
+
+          const me = getClients().filter(client => {
+            return client.socketId == socket.id
+          });
+
           const message: SocketMessage = {
             topic: "register-response",
             code: "success",
-            data: {message: "register successful"}
+            data: {message: "register successful", me: me[0]}
           }
+
           socket.send(JSON.stringify(message))
           updateOnline(io, socket, clients);
         } catch (err: any) {
@@ -79,10 +83,125 @@ io.on("connection", (socket: any, req: IncomingMessage) => {
           }
           socket.send(JSON.stringify(message));
         }
+        break;
+      }
 
-      case MessageTopic.GET_ONLINE:
+      case MessageTopic.CHAT_REQUEST: {
+        console.log("received chat-request to forward")
+        const {
+          discoverySocketId
+        } = obj.data
+
+        let sendTo = null;
+        io.clients.forEach((client: any) => {
+          if (client.id == discoverySocketId) {
+            sendTo = client
+          }
+        });
+
+        if (sendTo != null) {
+          const message: SocketMessage = {
+            topic: "chat-request",
+            code: "success",
+            data: obj.data
+          }
+          try {
+            sendTo!.send(JSON.stringify(message))
+          } catch(e: any) {
+            console.log(e)
+          }
+        } else {
+          console.log("sendto is null")
+        }
+        break;
+      }
+
+      case MessageTopic.FORWARD_MESSAGE: {
+        console.log("received forward message request")
+        const socketId = obj.data.discoverySocketId;
+        const message = obj.data.message;
+        const timestamp = obj.data.timestamp;
+        const sender = obj.data.sender;
+        const receiver = obj.data.receiver;
+
+        let sendTo = null;
+        io.clients.forEach((client: any) => {
+          if (client.id == socketId) {
+            sendTo = client
+          }
+        });
+
+        if (sendTo != null) {
+          const obj2: SocketMessage = {
+            topic: "chat-message",
+            code: "success",
+            data: {
+              message: message,
+              timestamp: timestamp,
+              sender: sender,
+              receiver: receiver
+            }
+          }
+  
+          try {
+            sendTo!.send(JSON.stringify(obj2))
+          } catch(e: any) {
+            console.log(e)
+          }
+        } else {
+          console.log("sendto is null")
+        }
+        break;
+      }
+
+      case MessageTopic.ALL_USERS: {
+        try {
+          let clients = getClients()
+
+          clients = clients.filter(client => {
+            return client.socketId != socket.id
+          });
+
+          const message: SocketMessage = {
+            topic: "all-users-response",
+            code: "success",
+            data: clients
+          }
+
+          socket.send(JSON.stringify(message))
+        } catch (err: any) {
+          console.log(err.message);
+          const message: SocketMessage = {
+            topic: "all-users-response",
+            code: "failure",
+            data: {message: "error getting users"}
+          }
+          socket.send(JSON.stringify(message));
+        }
+        break;
+      }
+
+      case MessageTopic.USER_DATA: {
+        const username = obj.data.username;
+        const user = getClients().find(client => {
+          return client.username == username
+        });
+
+
+        const msg: SocketMessage = {
+          topic: "user-data-response",
+          code: "success",
+          data: user
+        }
+        socket.send(JSON.stringify(msg));
+        break;
+      }
+
+      case MessageTopic.GET_ONLINE: {
         const clients = getClients();
         updateOnline(io, socket, clients)
+        break;
+      }
     }
   });
 
@@ -91,14 +210,14 @@ io.on("connection", (socket: any, req: IncomingMessage) => {
     try {
       let clients = getClients();
       let client = clients.find(client => client.socketId === socket.id);
-      clients = addClient({...client, socketId: null});
+      if (client) {
+        clients = addClient({...client, socketId: null});
       updateOnline(io, socket, clients);
+      }
     } catch (err: any) {
       console.log(err.message);
     }
   });
-
-  // send clients status to peer when connection is made
 });
 
 const updateOnline = (io: WebSocketServer, socket: any, clients: Client[]) => {
@@ -112,17 +231,6 @@ const updateOnline = (io: WebSocketServer, socket: any, clients: Client[]) => {
     }
   });
 }
-
-app.post('/register', (req, res) => {
-  const {username, privatePort} = req.body;
-  if (!username || !privatePort) {
-    res.status(400).json({
-      message: "missing data"
-    });
-    return;
-  }
-  
-});
 
 server.listen(port, () => {
   console.log(`Server listening on ${port}`);
